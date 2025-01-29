@@ -9,20 +9,30 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskText, setTaskText] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
-    connectWallet();
+    if (window.ethereum) {
+      window.ethereum.request({ method: "eth_accounts" }).then((accounts) => {
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+          fetchTasks();
+        }
+      });
+    }
   }, []);
 
   async function connectWallet() {
-    if (window.ethereum) {
+    if (window.ethereum && !isConnecting) {
+      setIsConnecting(true);
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        setAccount(await signer.getAddress());
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        setAccount(accounts[0]);
         fetchTasks();
       } catch (error) {
         console.error("Error connecting wallet:", error);
+      } finally {
+        setIsConnecting(false);
       }
     } else {
       alert("MetaMask is required!");
@@ -73,7 +83,7 @@ function App() {
   return (
     <div className="container">
       <h1>Task Manager</h1>
-      <button onClick={connectWallet}>
+      <button onClick={connectWallet} disabled={isConnecting}>
         {account ? `Connected: ${account}` : "Connect Wallet"}
       </button>
       <div>
